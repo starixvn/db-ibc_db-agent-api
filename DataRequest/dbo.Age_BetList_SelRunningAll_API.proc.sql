@@ -3,13 +3,24 @@
 	@username varchar(50) = NULL,
 	@Language varchar(2) = 'E'
 AS
-
+/*
+Created: 
+Task : Agent Web Service, function: GetAgentBetListRunning
+DB: DB052.bodb02
+Original:
+Revisions:
+    - 20100107@Hanh: Get Odds Type, remove ComStatus column
+    - 20110408@Amy: Change function to get Odds value and showed odds type  
+					remove status instead of statusID
+	- 20110512@Johnson: Apply new arrange bettype
+*/
 if @custid is null
 	select @custid = custid from customer with (nolock) where username = @username
 
 select
 	convert(float, b.hdp1) as hdp1, convert(float, b.hdp2) as hdp2, 
-	b.odds,b.stake,
+	dbo.f_GetOddsByBettype(b.odds,b.bettype,b.oddstype) as odds,  
+	b.stake,
 	b.betteam,
 	b.status,
 	convert(nvarchar(20),b.transid) AS refno,
@@ -21,21 +32,21 @@ select
 	case @Language when 'E' then h.teamname when 'J' then isnull(h.teamnamej, h.teamname) else isnull(h.teamnamec_uni, h.teamname) end as home,
 	case @Language when 'E' then a.teamname when 'J' then isnull(a.teamnamej, a.teamname) else isnull(a.teamnamec_uni, a.teamname) end as away,
 	case @Language when 'E' then l.leaguename when 'J' then isnull(l.leaguenamej, l.leaguename) else isnull(l.leaguenamec_uni, l.leaguename) end as leaguename,
-	c.username,
-	b.comstatus,
-	(winlost-actual_stake)  winlost,
-	(playercomm) AS playercomm,
+	username,	
+	(0-case when b.odds>0 then stake else stake*abs(b.odds) end)  winlost,
+	(0) AS playercomm,
 	b.mpositiontaking,
 	b.apositiontaking,
 	b.liveindicator,
 	b.livehomescore,
 	b.liveawayscore,
-	b.spositiontaking,
-	case when CHARINDEX('hk', c.ugroup) > 0 then 'HK' else case when b.currency = 15 then 'Indo' else 'Malay' end end as OddsType,
-	s.sportname
+	b.spositiontaking,	
+	dbo.f_ShowOddsByBettype(b.bettype,b.oddstype) as OddsType  ,
+	s.sportname,
+	m.kickofftime
 from 
-	dbo.bettrans AS b with (nolock)
-	INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
+	dbo.bettrans_running b with (nolock)
+	--INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
 	INNER JOIN dbo.match AS m with (nolock) ON b.matchid=m.matchid 
 	INNER JOIN dbo.team AS h with (nolock) ON h.teamid=m.homeid 
 	INNER JOIN dbo.team AS a with (nolock) ON a.teamid=m.awayid 
@@ -44,12 +55,13 @@ from
 	inner join Sports as s with (nolock) on l.sporttype = s.sporttype
 where	
 	b.recommend=@custid and
-	b.status = 'running'  and
-	b.bettype < 99
+	b.statusID = 0  and
+	b.bettype < 19999
 union all
 select
 	b.hdp1,b.hdp2,
-	b.odds,b.stake,
+	b.odds ,
+	b.stake,
 	b.betteam,
 	b.status,
 	convert(nvarchar(20),b.transid) AS refno,
@@ -61,21 +73,21 @@ select
 	case @Language when 'E' then h.teamname when 'J' then isnull(h.teamnamej, h.teamname) else isnull(h.teamnamec_uni, h.teamname) end as home,
 	'' as away,
 	case @Language when 'E' then l.leaguename when 'J' then isnull(l.leaguenamej, l.leaguename) else isnull(l.leaguenamec_uni, l.leaguename) end as leaguename,
-	c.username,
-	b.comstatus,
-	(winlost-case when b.odds>0 then stake else stake*abs(b.odds) end)  winlost,
-	(playercomm) AS playercomm,
+	username,	
+	(0-case when b.odds>0 then stake else stake*abs(b.odds) end)  winlost,
+	(0) AS playercomm,
 	b.mpositiontaking,
 	b.apositiontaking,
 	b.liveindicator,
 	b.livehomescore,
 	b.liveawayscore,
 	b.spositiontaking,
-	'' as OddsType,
-	s.sportname
+	0 as OddsType,
+	s.sportname,
+	m.kickofftime
 from 
-	dbo.bettrans AS b with (nolock)
-	INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
+	dbo.bettrans_running b with (nolock)
+	--INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
 	INNER JOIN dbo.outright AS m with (nolock) ON b.matchid=m.orid
 	INNER JOIN dbo.team AS h with (nolock) ON h.teamid=m.teamid
 	INNER JOIN dbo.league AS l with (nolock) ON l.leagueid=m.leagueid 
@@ -83,7 +95,7 @@ from
 	inner join Sports as s with (nolock) on l.sporttype = s.sporttype 
 where
 	b.recommend=@custid and
-	b.status = 'running' and
+	b.statusID = 0 and
 	b.bettype = 10
 UNION ALL
 select
@@ -100,27 +112,29 @@ select
 	'' home,
 	'' away,
 	''  leaguename,
-	c.username,
-	b.comstatus,
-	(winlost-actual_stake)  winlost,
-	(playercomm) playercomm,
+	username,	
+	(0-case when odds>0 then stake else stake*abs(odds) end)  winlost,
+	(0) playercomm,
 	b.mpositiontaking,
 	b.apositiontaking,
 	b.liveindicator,
 	b.livehomescore,
 	b.liveawayscore,
 	b.spositiontaking,
-	'' as OddsType,
+	0 as OddsType,
+	'',
 	''
 from 
-	dbo.bettrans b (nolock) 
-	INNER JOIN dbo.customer c (nolock) ON b.custid=c.custid
+	dbo.bettrans_running b (nolock) 
+	--INNER JOIN dbo.customer c (nolock) ON b.custid=c.custid
 where
 	b.recommend=@custid and		
-	b.status=('running')  and
+	b.statusID = 0  and
 	b.bettype = 9
 
 GO
-GRANT EXECUTE ON dbo.Age_BetList_SelRunningAll_API TO [bodbDownlineNet]
+GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API] TO [bodbDownlineNet] AS [dbo]
 GO
-GRANT EXECUTE ON dbo.Age_BetList_SelRunningAll_API TO [bodbDownlineNetView]
+GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API] TO [bodbDownlineNetView] AS [dbo]
+GO
+GRANT VIEW DEFINITION ON [dbo].[Age_BetList_SelRunningAll_API] TO [vnteam] AS [dbo]
