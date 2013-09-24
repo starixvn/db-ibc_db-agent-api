@@ -6,14 +6,16 @@ AS
 /*
 Created: 
 Task : Agent Web Service, function: GetAgentBetListRunning
-DB: DB052.bodb02
+DB: DBAGE/bodb02
 Original:
 Revisions:
     - 20100107@Hanh: Get Odds Type, remove ComStatus column
     - 20110408@Amy: Change function to get Odds value and showed odds type  
 					remove status instead of statusID
 	- 20110512@Johnson: Apply new arrange bettype
+	- 20130924@Jamie: Change to bodb_Age / bettrans_running 
 */
+SET NOCOUNT ON 
 if @custid is null
 	select @custid = custid from customer with (nolock) where username = @username
 
@@ -45,7 +47,7 @@ select
 	s.sportname,
 	m.kickofftime
 from 
-	dbo.bettrans_running b with (nolock)
+	bodb_Age.dbo.bettrans_running b with (nolock)
 	--INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
 	INNER JOIN dbo.match AS m with (nolock) ON b.matchid=m.matchid 
 	INNER JOIN dbo.team AS h with (nolock) ON h.teamid=m.homeid 
@@ -86,7 +88,7 @@ select
 	s.sportname,
 	m.kickofftime
 from 
-	dbo.bettrans_running b with (nolock)
+	bodb_Age.dbo.bettrans_running b with (nolock)
 	--INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
 	INNER JOIN dbo.outright AS m with (nolock) ON b.matchid=m.orid
 	INNER JOIN dbo.team AS h with (nolock) ON h.teamid=m.teamid
@@ -125,7 +127,7 @@ select
 	'',
 	''
 from 
-	dbo.bettrans_running b (nolock) 
+	bodb_Age.dbo.bettrans_running b (nolock) 
 	--INNER JOIN dbo.customer c (nolock) ON b.custid=c.custid
 where
 	b.recommend=@custid and		
@@ -133,8 +135,8 @@ where
 	b.bettype = 9
 
 GO
-GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API] TO [bodbDownlineNet] AS [dbo]
+GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API_xpre] TO [bodbDownlineNet] AS [dbo]
 GO
-GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API] TO [bodbDownlineNetView] AS [dbo]
+GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API_xpre] TO [bodbDownlineNetView] AS [dbo]
 GO
-GRANT VIEW DEFINITION ON [dbo].[Age_BetList_SelRunningAll_API] TO [vnteam] AS [dbo]
+GRANT VIEW DEFINITION ON [dbo].[Age_BetList_SelRunningAll_API_xpre] TO [vnteam] AS [dbo]
