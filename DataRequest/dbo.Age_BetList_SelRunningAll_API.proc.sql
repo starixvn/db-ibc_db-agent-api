@@ -1,4 +1,10 @@
-﻿ALTER PROCEDURE [dbo].[Age_BetList_SelRunningAll_API]
+﻿USE [bodb_AGE]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[Age_BetList_SelRunningAll_API]
 	@custid int = NULL,	
 	@username varchar(50) = NULL,
 	@Language varchar(2) = 'E'
@@ -6,7 +12,7 @@ AS
 /*
 Created: 
 Task : Agent Web Service, function: GetAgentBetListRunning
-DB: DBAGE/bodb02
+DB: DBAGE/bodb_AGE
 Original:
 Revisions:
     - 20100107@Hanh: Get Odds Type, remove ComStatus column
@@ -17,11 +23,11 @@ Revisions:
 */
 SET NOCOUNT ON 
 if @custid is null
-	select @custid = custid from customer with (nolock) where username = @username
+	select @custid = custid from bodb02.dbo.customer with (nolock) where username = @username
 
 select
 	convert(float, b.hdp1) as hdp1, convert(float, b.hdp2) as hdp2, 
-	dbo.f_GetOddsByBettype(b.odds,b.bettype,b.oddstype) as odds,  
+	bodb02.dbo.f_GetOddsByBettype(b.odds,b.bettype,b.oddstype) as odds,  
 	b.stake,
 	b.betteam,
 	b.status,
@@ -43,18 +49,18 @@ select
 	b.livehomescore,
 	b.liveawayscore,
 	b.spositiontaking,	
-	dbo.f_ShowOddsByBettype(b.bettype,b.oddstype) as OddsType  ,
+	bodb02.dbo.f_ShowOddsByBettype(b.bettype,b.oddstype) as OddsType  ,
 	s.sportname,
 	m.kickofftime
 from 
 	bodb_Age.dbo.bettrans_running b with (nolock)
 	--INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
-	INNER JOIN dbo.match AS m with (nolock) ON b.matchid=m.matchid 
-	INNER JOIN dbo.team AS h with (nolock) ON h.teamid=m.homeid 
-	INNER JOIN dbo.team AS a with (nolock) ON a.teamid=m.awayid 
-	INNER JOIN dbo.league AS l with (nolock) ON l.leagueid=m.leagueid 
-	INNER JOIN dbo.bettype with (nolock) ON bettype.typeid=b.bettype
-	inner join Sports as s with (nolock) on l.sporttype = s.sporttype
+	INNER JOIN bodb02.dbo.match AS m with (nolock) ON b.matchid=m.matchid 
+	INNER JOIN bodb02.dbo.team AS h with (nolock) ON h.teamid=m.homeid 
+	INNER JOIN bodb02.dbo.team AS a with (nolock) ON a.teamid=m.awayid 
+	INNER JOIN bodb02.dbo.league AS l with (nolock) ON l.leagueid=m.leagueid 
+	INNER JOIN bodb02.dbo.bettype with (nolock) ON bettype.typeid=b.bettype
+	inner join bodb02.dbo.Sports as s with (nolock) on l.sporttype = s.sporttype
 where	
 	b.recommend=@custid and
 	b.statusID = 0  and
@@ -90,11 +96,11 @@ select
 from 
 	bodb_Age.dbo.bettrans_running b with (nolock)
 	--INNER JOIN dbo.customer AS c with (nolock) ON b.custid=c.custid 
-	INNER JOIN dbo.outright AS m with (nolock) ON b.matchid=m.orid
-	INNER JOIN dbo.team AS h with (nolock) ON h.teamid=m.teamid
-	INNER JOIN dbo.league AS l with (nolock) ON l.leagueid=m.leagueid 
-	INNER JOIN dbo.bettype with (nolock) ON bettype.typeid=b.bettype
-	inner join Sports as s with (nolock) on l.sporttype = s.sporttype 
+	INNER JOIN bodb02.dbo.outright AS m with (nolock) ON b.matchid=m.orid
+	INNER JOIN bodb02.dbo.team AS h with (nolock) ON h.teamid=m.teamid
+	INNER JOIN bodb02.dbo.league AS l with (nolock) ON l.leagueid=m.leagueid 
+	INNER JOIN bodb02.dbo.bettype with (nolock) ON bettype.typeid=b.bettype
+	inner join bodb02.dbo.Sports as s with (nolock) on l.sporttype = s.sporttype 
 where
 	b.recommend=@custid and
 	b.statusID = 0 and
@@ -134,9 +140,11 @@ where
 	b.statusID = 0  and
 	b.bettype = 9
 
+
+
 GO
-GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API_xpre] TO [bodbDownlineNet] AS [dbo]
+GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API] TO [bodbDownlineNet] AS [dbo]
 GO
-GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API_xpre] TO [bodbDownlineNetView] AS [dbo]
+GRANT EXECUTE ON [dbo].[Age_BetList_SelRunningAll_API] TO [bodbDownlineNetView] AS [dbo]
 GO
-GRANT VIEW DEFINITION ON [dbo].[Age_BetList_SelRunningAll_API_xpre] TO [vnteam] AS [dbo]
+GRANT VIEW DEFINITION ON [dbo].[Age_BetList_SelRunningAll_API] TO [vnteam] AS [dbo]
